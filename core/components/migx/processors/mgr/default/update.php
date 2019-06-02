@@ -342,13 +342,30 @@ $snippetProperties['postvalues'] = $postvalues;
 $snippetProperties['scriptProperties'] = $scriptProperties;
 
 if (!empty($hooksnippet_aftersave)) {
-    $result = $modx->runSnippet($hooksnippet_aftersave, $snippetProperties);
-    $result = $modx->fromJson($result);
-    $error = $modx->getOption('error', $result, '');
-    if (!empty($error)) {
-        $updateerror = true;
-        $errormsg = $error;
-        return;
+    $errors = array();
+
+    // Accept multiple aftersave hooks
+    if (is_array($hooksnippet_aftersave)) {
+        foreach ($hooksnippet_aftersave as $snippet) {
+            $result = $modx->runSnippet($snippet, $snippetProperties);
+            $result = $modx->fromJson($result);
+            $errors[] = $modx->getOption('error', $result, '');
+        }
+    }
+
+    // Or run a single hook
+    else {
+        $result = $modx->runSnippet($hooksnippet_aftersave, $snippetProperties);
+        $result = $modx->fromJson($result);
+        $errors[] = $modx->getOption('error', $result, '');
+    }
+
+    foreach ($errors as $error) {
+        if ($error) {
+            $updateerror = true;
+            $errormsg = ($error);
+            return;
+        }
     }
 }
 
